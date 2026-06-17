@@ -22,7 +22,7 @@ def load_glaive_dataset(split: str = "train") -> "Dataset":
         from datasets import load_dataset
 
         return load_dataset(DATASET_ID)[split]
-    except ImportError as e:
+    except (ImportError, Exception) as e:
         print(f"load_dataset failed, using JSON fallback: {e}")
         return _load_from_json()
 
