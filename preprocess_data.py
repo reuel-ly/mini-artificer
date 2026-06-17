@@ -45,9 +45,12 @@ def preprocess_sample(sample: dict) -> dict | None:
 
 
 def preprocess_dataset(dataset: "Dataset") -> "Dataset":
-    """Map ``preprocess_sample`` over a dataset and drop invalid rows."""
-    processed = dataset.map(
-        preprocess_sample,
-        remove_columns=dataset.column_names,
-    )
-    return processed.filter(lambda row: row["messages"] is not None)
+    """Preprocess each row and drop samples where ``preprocess_sample`` returns None."""
+    results = []
+    for sample in dataset:
+        processed = preprocess_sample(sample)
+        if processed is not None:
+            results.append(processed)
+    from datasets import Dataset
+
+    return Dataset.from_list(results)

@@ -1,5 +1,5 @@
 from data_loader import load_glaive_dataset
-from preprocess_data import ASSISTANT_RE, USER_RE, preprocess_sample
+from preprocess_data import ASSISTANT_RE, USER_RE, preprocess_dataset, preprocess_sample
 
 
 def assert_clean_result(result: dict, *, expect_functioncall: bool) -> None:
@@ -72,6 +72,35 @@ def test_preprocess_edge_cases() -> None:
     print()
 
 
+def test_preprocess_dataset_drops_invalid_rows() -> None:
+    from datasets import Dataset
+
+    test1 = "USER: Can you book a flight?\n\nASSISTANT: I'm sorry, I can't. <|endoftext|>"
+    test2 = (
+        "USER: US news?\n\n"
+        'ASSISTANT: <functioncall> {"name": "get_news"} <|endoftext|>\n\n'
+        'FUNCTION RESPONSE: {"headlines": []}\n\n'
+        "USER: France news?"
+    )
+    test3 = "USER: Hello?\n\n"
+
+    ds = Dataset.from_list(
+        [
+            {"system": "SYSTEM: You are helpful.", "chat": test1},
+            {"system": "SYSTEM: Tools available.", "chat": test2},
+            {"system": "SYSTEM: x", "chat": test3},
+        ]
+    )
+
+    result = preprocess_dataset(ds)
+
+    assert len(result) == 2
+    for row in result:
+        assert row["messages"] is not None
+        assert len(row["messages"]) == 3
+        assert [m["role"] for m in row["messages"]] == ["system", "user", "assistant"]
+
+
 def find_sample(dataset, predicate):
     for row in dataset:
         if predicate(row):
@@ -103,6 +132,7 @@ def test_real_samples() -> None:
 def main():
     test_raw_regex()
     test_preprocess_edge_cases()
+    test_preprocess_dataset_drops_invalid_rows()
     test_real_samples()
     print("All preprocessing tests passed.")
 
