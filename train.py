@@ -30,10 +30,12 @@ from preprocess_data import preprocess_dataset
 
 import wandb
 
-wandb.init(project=WANDB_PROJECT, name=WANDB_RUN_NAME)
+
 
 
 def main() -> None:
+    wandb.init(project=WANDB_PROJECT, name=WANDB_RUN_NAME)
+
     # 1. Load the dataset
     raw_ds = load_glaive_dataset()
 
