@@ -6,6 +6,9 @@ import torch
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
+import wandb
+
+wandb.init(project="mini-artificer", name="smollm2-135m-lora-r4")
 
 from config import (
     BATCH_SIZE,
@@ -61,7 +64,7 @@ def main() -> None:
         logging_steps=10,
         save_strategy="steps",
         save_steps=MAX_STEPS,
-        report_to="none",
+        report_to="wandb",
     )
 
     # 6. Initialize SFTTrainer
