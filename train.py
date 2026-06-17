@@ -42,6 +42,7 @@ def main() -> None:
     # 2. Preprocess using preprocess_sample (via preprocess_dataset)
     train_ds = preprocess_dataset(raw_ds)
     print(f"Preprocessed {len(train_ds)} samples")
+    print(f"Sample 0: {train_ds[0]}")  
 
     # 3. Load SmolLM2-135M-Instruct
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
