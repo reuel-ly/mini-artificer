@@ -12,6 +12,7 @@ wandb.init(project="mini-artificer", name="smollm2-135m-lora-r4")
 
 from config import (
     BATCH_SIZE,
+    GRADIENT_ACCUMULATION_STEPS,
     LEARNING_RATE,
     LORA_ALPHA,
     LORA_DROPOUT,
@@ -21,6 +22,7 @@ from config import (
     MAX_STEPS,
     MODEL_NAME,
     OUTPUT_DIR,
+    WARMUP_STEPS,
 )
 from data_loader import load_glaive_dataset
 from preprocess_data import preprocess_dataset
@@ -57,7 +59,9 @@ def main() -> None:
         output_dir=OUTPUT_DIR,
         max_steps=MAX_STEPS,
         per_device_train_batch_size=BATCH_SIZE,
+        gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         learning_rate=LEARNING_RATE,
+        warmup_steps=WARMUP_STEPS,
         max_length=MAX_SEQ_LENGTH,
         assistant_only_loss=True,
         fp16=torch.cuda.is_available(),
