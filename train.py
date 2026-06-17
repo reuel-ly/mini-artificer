@@ -6,9 +6,7 @@ import torch
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
-import wandb
 
-wandb.init(project="mini-artificer", name="smollm2-135m-lora-r4")
 
 from config import (
     BATCH_SIZE,
@@ -23,9 +21,16 @@ from config import (
     MODEL_NAME,
     OUTPUT_DIR,
     WARMUP_STEPS,
+    WANDB_PROJECT,
+    WANDB_RUN_NAME,
 )
+
 from data_loader import load_glaive_dataset
 from preprocess_data import preprocess_dataset
+
+import wandb
+
+wandb.init(project=WANDB_PROJECT, name=WANDB_RUN_NAME)
 
 
 def main() -> None:
