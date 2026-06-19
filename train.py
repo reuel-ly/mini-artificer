@@ -6,7 +6,8 @@ import torch
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
-
+from huggingface_hub import HfApi
+import os
 
 from config import (
     BATCH_SIZE,
@@ -23,6 +24,7 @@ from config import (
     WARMUP_STEPS,
     WANDB_PROJECT,
     WANDB_RUN_NAME,
+    HF_REPO_NAME
 )
 
 from data_loader import load_glaive_dataset
@@ -52,6 +54,28 @@ def patch_chat_template(tokenizer):
         "{% endif %}"
     )
     return tokenizer
+
+
+
+def push_to_hub(output_dir: str, repo_name: str) -> None:
+    """Push fine-tuned model to HuggingFace Hub."""
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        print("No HF_TOKEN found, skipping hub push")
+        return
+    
+    api = HfApi()
+    api.create_repo(
+        repo_id=repo_name,
+        token=hf_token,
+        exist_ok=True,  # don't fail if repo already exists
+    )
+    api.upload_folder(
+        folder_path=output_dir,
+        repo_id=repo_name,
+        token=hf_token,
+    )
+    print(f"Model pushed to huggingface.co/{repo_name}")
 
 
 def main() -> None:
@@ -116,6 +140,12 @@ def main() -> None:
     trainer.save_model(OUTPUT_DIR)
     tokenizer.save_pretrained(OUTPUT_DIR)
     print(f"Model saved to {OUTPUT_DIR}")
+
+    # 9. Push to HuggingFace Hub
+    push_to_hub(
+        output_dir=OUTPUT_DIR,
+        repo_name=HF_REPO_NAME
+    )
 
 
 if __name__ == "__main__":
