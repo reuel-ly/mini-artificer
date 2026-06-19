@@ -28,6 +28,7 @@ from config import (
 )
 
 from data_loader import load_glaive_dataset
+from inference import run_inference_tests
 from preprocess_data import preprocess_dataset
 
 import wandb
@@ -141,7 +142,11 @@ def main() -> None:
     tokenizer.save_pretrained(OUTPUT_DIR)
     print(f"Model saved to {OUTPUT_DIR}")
 
-    # 9. Push to HuggingFace Hub
+    # 9. Run inference smoke tests
+    print("Running post-training inference tests...")
+    run_inference_tests(output_dir=OUTPUT_DIR)
+
+    # 10. Push to HuggingFace Hub
     push_to_hub(
         output_dir=OUTPUT_DIR,
         repo_name=HF_REPO_NAME
