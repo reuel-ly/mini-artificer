@@ -91,6 +91,7 @@ def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
         tokenizer=tokenizer,
     )
     print(result)
+    
     print('='*10)
 
     print("\n=== Test 2: Should NOT call tool ===")
@@ -101,7 +102,9 @@ def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
         tokenizer=tokenizer,
     )
     print(result)
+
     print('='*10)
+    
 
 
 if __name__ == "__main__":
