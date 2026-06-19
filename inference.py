@@ -24,6 +24,8 @@ WEATHER_TOOL_SCHEMA = {
 def _load_model_and_tokenizer(output_dir: str) -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = AutoTokenizer.from_pretrained(output_dir)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
     model = PeftModel.from_pretrained(model, output_dir)
     model.eval()
@@ -57,20 +59,22 @@ def run_inference(
         },
     ]
 
-    input_ids = tokenizer.apply_chat_template(
+    inputs = tokenizer.apply_chat_template(
         messages,
         add_generation_prompt=True,
+        tokenize=True,
         return_tensors="pt",
     ).to(device)
 
     output = model.generate(
-        input_ids,
+        **inputs,
         max_new_tokens=150,
         temperature=0.1,
         do_sample=True,
     )
 
-    new_tokens = output[0][input_ids.shape[-1]:]
+    prompt_length = inputs["input_ids"].shape[-1]
+    new_tokens = output[0][prompt_length:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True)
 
 
