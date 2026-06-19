@@ -19,8 +19,8 @@ GRADIENT_ACCUMULATION_STEPS = 4
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-135m-lora-r4-700steps"
+WANDB_RUN_NAME = "smollm2-135m-lora-r4-700stepsv2"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "700-steps"  # set to None or "" to skip tagging
+HF_MODEL_TAG = "700-steps-v2"  # set to None or "" to skip tagging
