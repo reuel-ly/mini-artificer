@@ -13,13 +13,14 @@ LORA_DROPOUT = 0.05
 LEARNING_RATE = 5e-4
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 4
-MAX_STEPS = 350
-WARMUP_STEPS = 50
+MAX_STEPS = 700
+WARMUP_STEPS = 70
 GRADIENT_ACCUMULATION_STEPS = 4
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-135m-lora-r4-baseline"
+WANDB_RUN_NAME = "smollm2-135m-lora-r4-700steps"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
+HF_MODEL_TAG = "700-steps"  # set to None or "" to skip tagging

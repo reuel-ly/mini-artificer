@@ -24,7 +24,8 @@ from config import (
     WARMUP_STEPS,
     WANDB_PROJECT,
     WANDB_RUN_NAME,
-    HF_REPO_NAME
+    HF_REPO_NAME,
+    HF_MODEL_TAG,
 )
 
 from chat_template import patch_chat_template
@@ -35,25 +36,40 @@ from preprocess_data import preprocess_dataset
 import wandb
 
 
-def push_to_hub(output_dir: str, repo_name: str) -> None:
-    """Push fine-tuned model to HuggingFace Hub."""
+def push_to_hub(output_dir: str, repo_name: str, tag: str | None = None) -> None:
+    """Push fine-tuned model to HuggingFace Hub and optionally create a version tag."""
     hf_token = os.environ.get("HF_TOKEN")
     if not hf_token:
         print("No HF_TOKEN found, skipping hub push")
         return
-    
+
     api = HfApi()
     api.create_repo(
         repo_id=repo_name,
         token=hf_token,
-        exist_ok=True,  # don't fail if repo already exists
+        exist_ok=True,
     )
-    api.upload_folder(
+    commit_info = api.upload_folder(
         folder_path=output_dir,
         repo_id=repo_name,
         token=hf_token,
+        commit_message=f"Add {tag} model" if tag else "Upload fine-tuned model",
     )
     print(f"Model pushed to huggingface.co/{repo_name}")
+
+    if tag:
+        api.create_tag(
+            repo_id=repo_name,
+            tag=tag,
+            revision=commit_info.oid,
+            tag_message=WANDB_RUN_NAME,
+            token=hf_token,
+            repo_type="model",
+            exist_ok=True,
+        )
+        print(f"Version tagged as: {tag}")
+    else:
+        print("Tagging skipped (no tag provided)")
 
 
 def main() -> None:
@@ -126,7 +142,8 @@ def main() -> None:
     # 10. Push to HuggingFace Hub
     push_to_hub(
         output_dir=OUTPUT_DIR,
-        repo_name=HF_REPO_NAME
+        repo_name=HF_REPO_NAME,
+        tag=HF_MODEL_TAG or None,
     )
 
 
