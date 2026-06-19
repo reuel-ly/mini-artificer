@@ -105,6 +105,15 @@ def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
 
     print('='*10)
     
+    # Debug 1 — see exactly what goes into the model
+    print("=== RAW TOKENIZED INPUT ===")
+    print(tokenizer.decode(input_ids[0]))
+    print("===========================")
+
+    # Debug 2 — check if chat template has generation markers
+    print("=== CHAT TEMPLATE ===")
+    print(tokenizer.chat_template)
+    print("=====================")
 
 
 if __name__ == "__main__":
