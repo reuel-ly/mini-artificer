@@ -6,6 +6,7 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
+from chat_template import patch_chat_template
 from config import MODEL_NAME, OUTPUT_DIR
 
 WEATHER_TOOL_SCHEMA = {
@@ -26,6 +27,7 @@ def _load_model_and_tokenizer(output_dir: str) -> tuple[PreTrainedModel, PreTrai
     tokenizer = AutoTokenizer.from_pretrained(output_dir)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    tokenizer = patch_chat_template(tokenizer)
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
     model = PeftModel.from_pretrained(model, output_dir)
     model.eval()

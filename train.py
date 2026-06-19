@@ -27,35 +27,12 @@ from config import (
     HF_REPO_NAME
 )
 
+from chat_template import patch_chat_template
 from data_loader import load_glaive_dataset
 from inference import run_inference_tests
 from preprocess_data import preprocess_dataset
 
 import wandb
-
-
-def patch_chat_template(tokenizer):
-    """Patch SmolLM2 chat template to be TRL training-compatible."""
-    tokenizer.chat_template = (
-        "{% for message in messages %}"
-        "{% if message['role'] == 'system' %}"
-        "<|im_start|>system\n{{ message['content'] }}<|im_end|>\n"
-        "{% elif message['role'] == 'user' %}"
-        "<|im_start|>user\n{{ message['content'] }}<|im_end|>\n"
-        "{% elif message['role'] == 'assistant' %}"
-        "<|im_start|>assistant\n"
-        "{% generation %}"
-        "{{ message['content'] }}"
-        "{% endgeneration %}"
-        "<|im_end|>\n"
-        "{% endif %}"
-        "{% endfor %}"
-        "{% if add_generation_prompt %}"
-        "<|im_start|>assistant\n"
-        "{% endif %}"
-    )
-    return tokenizer
-
 
 
 def push_to_hub(output_dir: str, repo_name: str) -> None:
