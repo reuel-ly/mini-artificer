@@ -20,3 +20,6 @@ GRADIENT_ACCUMULATION_STEPS = 4
 # Logging
 WANDB_PROJECT = "mini-artificer"
 WANDB_RUN_NAME = "smollm2-135m-lora-r4-baseline"
+
+# HuggingFace Hub
+HF_REPO_NAME = "reuel-ly/mini-artificer"
