@@ -1,8 +1,8 @@
 from transformers import AutoTokenizer
 from trl.chat_template_utils import has_generation_markers
 
+from chat_template import patch_chat_template
 from config import MODEL_NAME
-from train import patch_chat_template
 
 SAMPLE_MESSAGES = [
     {"role": "system", "content": "You are helpful."},
