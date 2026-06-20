@@ -6,7 +6,6 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
-from chat_template import patch_chat_template
 from config import MODEL_NAME, OUTPUT_DIR
 
 WEATHER_TOOL_SCHEMA = {
@@ -27,7 +26,6 @@ def _load_model_and_tokenizer(output_dir: str) -> tuple[PreTrainedModel, PreTrai
     tokenizer = AutoTokenizer.from_pretrained(output_dir)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    tokenizer = patch_chat_template(tokenizer)
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
     model = PeftModel.from_pretrained(model, output_dir)
     model.eval()
@@ -61,21 +59,27 @@ def run_inference(
         },
     ]
 
-    inputs = tokenizer.apply_chat_template(
+    encoded = tokenizer.apply_chat_template(
         messages,
         add_generation_prompt=True,
         tokenize=True,
         return_tensors="pt",
-    ).to(device)
+    )
+    input_ids = (
+        encoded.to(device)
+        if isinstance(encoded, torch.Tensor)
+        else encoded["input_ids"].to(device)
+    )
 
     output = model.generate(
-        **inputs,
+        input_ids,
         max_new_tokens=150,
         temperature=0.1,
         do_sample=True,
+        pad_token_id=tokenizer.eos_token_id,
     )
 
-    prompt_length = inputs["input_ids"].shape[-1]
+    prompt_length = input_ids.shape[-1]
     new_tokens = output[0][prompt_length:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True)
 
@@ -104,10 +108,35 @@ def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
     print(result)
 
     print('='*10)
-    
+
+    debug_messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant with access to the following functions. "
+                f"Use them if required -\n{WEATHER_TOOL_SCHEMA}"
+            ),
+        },
+        {
+            "role": "user",
+            "content": "What is the weather in Manila?",
+        },
+    ]
+    debug_inputs = tokenizer.apply_chat_template(
+        debug_messages,
+        add_generation_prompt=True,
+        tokenize=True,
+        return_tensors="pt",
+    )
+
     # Debug 1 — see exactly what goes into the model
     print("=== RAW TOKENIZED INPUT ===")
-    print(tokenizer.decode(input_ids[0]))
+    debug_ids = (
+        debug_inputs
+        if isinstance(debug_inputs, torch.Tensor)
+        else debug_inputs["input_ids"]
+    )
+    print(tokenizer.decode(debug_ids[0]))
     print("===========================")
 
     # Debug 2 — check if chat template has generation markers
