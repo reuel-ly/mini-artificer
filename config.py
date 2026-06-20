@@ -16,14 +16,14 @@ DATASET_SIZE = 10_000
 LEARNING_RATE = 5e-4
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 4
-MAX_STEPS = 700
-WARMUP_STEPS = 70
+MAX_STEPS = 7000
+WARMUP_STEPS = 200
 GRADIENT_ACCUMULATION_STEPS = 4
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-135m-lora-r4-10k-curated-700steps"
+WANDB_RUN_NAME = "smollm2-135m-lora-r4-10k-curated-7000steps"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "10k-curated-700steps"  # set to None or "" to skip tagging
+HF_MODEL_TAG = "10k-curated-7000steps"  # set to None or "" to skip tagging
