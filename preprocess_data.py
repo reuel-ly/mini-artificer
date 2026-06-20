@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 import re
 from typing import TYPE_CHECKING
 
@@ -44,13 +45,38 @@ def preprocess_sample(sample: dict) -> dict | None:
     }
 
 
-def preprocess_dataset(dataset: "Dataset") -> "Dataset":
-    """Preprocess each row and drop samples where ``preprocess_sample`` returns None."""
-    results = []
+def preprocess_dataset(dataset: "Dataset", max_samples: int = 10_000) -> "Dataset":
+    """Preprocess rows, then curate a balanced subset for tool-calling SFT.
+
+    Keeps up to 80% function-call samples and 20% negative (no-call) samples,
+    capped at ``max_samples`` total. Invalid rows are dropped.
+    """
+    function_call_samples = []
+    negative_samples = []
+
     for sample in dataset:
         processed = preprocess_sample(sample)
-        if processed is not None:
-            results.append(processed)
+        if processed is None:
+            continue
+
+        assistant_content = processed["messages"][2]["content"]
+        if "<functioncall>" in assistant_content:
+            function_call_samples.append(processed)
+        else:
+            negative_samples.append(processed)
+
+    random.seed(42)
+    random.shuffle(function_call_samples)
+    random.shuffle(negative_samples)
+
+    n_positive = int(max_samples * 0.8)
+    n_negative = int(max_samples * 0.2)
+
+    results = function_call_samples[:n_positive] + negative_samples[:n_negative]
+    random.shuffle(results)
+
     from datasets import Dataset
 
+    print(f"Positive samples: {len(function_call_samples[:n_positive])}")
+    print(f"Negative samples: {len(negative_samples[:n_negative])}")
     return Dataset.from_list(results)

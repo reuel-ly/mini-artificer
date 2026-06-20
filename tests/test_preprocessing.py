@@ -72,6 +72,34 @@ def test_preprocess_edge_cases() -> None:
     print()
 
 
+def test_preprocess_dataset_balances_positive_negative() -> None:
+    from datasets import Dataset
+
+    positive_chat = (
+        "USER: US news?\n\n"
+        'ASSISTANT: <functioncall> {"name": "get_news"} <|endoftext|>'
+    )
+    negative_chat = (
+        "USER: Can you book a flight?\n\n"
+        "ASSISTANT: I'm sorry, I can't. <|endoftext|>"
+    )
+
+    rows = []
+    for i in range(10):
+        rows.append({"system": "SYSTEM: Tools available.", "chat": positive_chat})
+        rows.append({"system": "SYSTEM: You are helpful.", "chat": negative_chat})
+
+    result = preprocess_dataset(Dataset.from_list(rows), max_samples=10)
+
+    assert len(result) == 10
+    positive_count = sum(
+        1 for row in result if "<functioncall>" in row["messages"][2]["content"]
+    )
+    negative_count = len(result) - positive_count
+    assert positive_count == 8
+    assert negative_count == 2
+
+
 def test_preprocess_dataset_drops_invalid_rows() -> None:
     from datasets import Dataset
 
@@ -132,6 +160,7 @@ def test_real_samples() -> None:
 def main():
     test_raw_regex()
     test_preprocess_edge_cases()
+    test_preprocess_dataset_balances_positive_negative()
     test_preprocess_dataset_drops_invalid_rows()
     test_real_samples()
     print("All preprocessing tests passed.")

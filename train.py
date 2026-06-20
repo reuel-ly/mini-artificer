@@ -11,6 +11,7 @@ import os
 
 from config import (
     BATCH_SIZE,
+    DATASET_SIZE,
     GRADIENT_ACCUMULATION_STEPS,
     LEARNING_RATE,
     LORA_ALPHA,
@@ -79,7 +80,7 @@ def main() -> None:
     raw_ds = load_glaive_dataset()
 
     # 2. Preprocess using preprocess_sample (via preprocess_dataset)
-    train_ds = preprocess_dataset(raw_ds)
+    train_ds = preprocess_dataset(raw_ds, max_samples=DATASET_SIZE)
     print(f"Preprocessed {len(train_ds)} samples")
     print(f"Sample 0: {train_ds[0]}")  
 
