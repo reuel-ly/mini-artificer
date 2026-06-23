@@ -39,7 +39,7 @@ import wandb
 
 
 def push_to_hub(output_dir: str, repo_name: str, tag: str | None = None) -> None:
-    """Push fine-tuned model to HuggingFace Hub and optionally create a version tag."""
+    """Push fine-tuned model to HuggingFace Hub on a named branch (tag) or main."""
     hf_token = os.environ.get("HF_TOKEN")
     if not hf_token:
         print("No HF_TOKEN found, skipping hub push")
@@ -51,28 +51,33 @@ def push_to_hub(output_dir: str, repo_name: str, tag: str | None = None) -> None
         token=hf_token,
         exist_ok=True,
     )
-    commit_info = api.upload_folder(
-        folder_path=output_dir,
-        repo_id=repo_name,
-        token=hf_token,
-        commit_message=f"Add {tag} model" if tag else "Upload fine-tuned model",
-        ignore_patterns=HF_IGNORE_PATTERNS,
-    )
-    print(f"Model pushed to huggingface.co/{repo_name}")
 
     if tag:
-        api.create_tag(
+        api.create_branch(
             repo_id=repo_name,
-            tag=tag,
-            revision=commit_info.oid,
-            tag_message=WANDB_RUN_NAME,
+            branch=tag,
             token=hf_token,
             repo_type="model",
             exist_ok=True,
         )
-        print(f"Version tagged as: {tag}")
+        api.upload_folder(
+            folder_path=output_dir,
+            repo_id=repo_name,
+            token=hf_token,
+            revision=tag,
+            commit_message=f"Add {tag} model",
+            ignore_patterns=HF_IGNORE_PATTERNS,
+        )
+        print(f"Pushed to branch '{tag}' on huggingface.co/{repo_name}")
     else:
-        print("Tagging skipped (no tag provided)")
+        api.upload_folder(
+            folder_path=output_dir,
+            repo_id=repo_name,
+            token=hf_token,
+            commit_message="Upload fine-tuned model",
+            ignore_patterns=HF_IGNORE_PATTERNS,
+        )
+        print(f"Model pushed to huggingface.co/{repo_name}")
 
 
 def main() -> None:

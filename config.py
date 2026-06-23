@@ -26,7 +26,7 @@ WANDB_RUN_NAME = "smollm2-135m-lora-r4-10k-curated-7000steps"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "10k-curated-7000steps"  # set to None or "" to skip tagging
+HF_MODEL_TAG = "10k-curated-7000steps"  # Hub branch name; set to None or "" to push to main
 HF_IGNORE_PATTERNS = [
     "checkpoint-*",
     "training_args.bin",
@@ -38,19 +38,6 @@ HF_IGNORE_PATTERNS = [
 ]
 
 #inference.py
-INFERENCE_MESSAGES = [
-    {
-        "role": "system",
-        "content": (
-            "You are a helpful assistant with access to the following functions. "
-            f"Use them if required -\n{tool_schema}"
-        ),
-    },
-    {
-        "role": "user",
-        "content": prompt,
-    },
-]
 WEATHER_TOOL_SCHEMA = {
     "name": "get_weather",
     "description": "Get current weather for a location",
@@ -62,3 +49,16 @@ WEATHER_TOOL_SCHEMA = {
         "required": ["location"],
     },
 }
+INFERENCE_MESSAGES = [
+    {
+        "role": "system",
+        "content": (
+            "You are a helpful assistant with access to the following functions. "
+            f"Use them if required -\n{WEATHER_TOOL_SCHEMA}"
+        ),
+    },
+    {
+        "role": "user",
+        "content": "What is the weather in Manila?",
+    },
+]
