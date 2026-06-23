@@ -7,9 +7,12 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
 from config import (
+    MAX_NEW_TOKENS,
     MODEL_NAME,
+    NO_REPEAT_NGRAM_SIZE,
     OUTPUT_DIR,
-    INFERENCE_MESSAGES,
+    REPETITION_PENALTY,
+    TEMPERATURE,
     WEATHER_TOOL_SCHEMA,
     format_system_with_tools,
 )
@@ -38,7 +41,16 @@ def run_inference(
 
     device = next(model.parameters()).device
 
-    messages = INFERENCE_MESSAGES
+    messages = [
+        {
+            "role": "system",
+            "content": format_system_with_tools(tool_schema),
+        },
+        {
+            "role": "user",
+            "content": prompt,
+        },
+    ]
 
     encoded = tokenizer.apply_chat_template(
         messages,
@@ -51,14 +63,17 @@ def run_inference(
         if isinstance(encoded, torch.Tensor)
         else encoded["input_ids"].to(device)
     )
+    attention_mask = torch.ones_like(input_ids)
 
     output = model.generate(
         input_ids,
-        max_new_tokens=150,
-        temperature=0.1,
+        attention_mask=attention_mask,
+        max_new_tokens=MAX_NEW_TOKENS,
+        temperature=TEMPERATURE,
         do_sample=True,
         pad_token_id=tokenizer.eos_token_id,
-
+        repetition_penalty=REPETITION_PENALTY,
+        no_repeat_ngram_size=NO_REPEAT_NGRAM_SIZE,
     )
 
     prompt_length = input_ids.shape[-1]

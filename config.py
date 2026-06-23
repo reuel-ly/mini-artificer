@@ -39,7 +39,13 @@ HF_IGNORE_PATTERNS = [
     "trainer_state.json",
 ]
 
-# inference
+# Inference generation
+MAX_NEW_TOKENS = 150
+TEMPERATURE = 0.1
+REPETITION_PENALTY = 1.3
+NO_REPEAT_NGRAM_SIZE = 10
+
+
 def format_system_with_tools(tool_schema: dict) -> str:
     return (
         "You are a helpful assistant with access to the following functions. "
