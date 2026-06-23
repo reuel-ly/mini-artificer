@@ -6,20 +6,7 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
-from config import MODEL_NAME, OUTPUT_DIR
-
-WEATHER_TOOL_SCHEMA = {
-    "name": "get_weather",
-    "description": "Get current weather for a location",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "location": {"type": "string", "description": "City name"},
-        },
-        "required": ["location"],
-    },
-}
-
+from config import MODEL_NAME, OUTPUT_DIR, INFERENCE_MESSAGES, WEATHER_TOOL_SCHEMA
 
 def _load_model_and_tokenizer(output_dir: str) -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -45,19 +32,7 @@ def run_inference(
 
     device = next(model.parameters()).device
 
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful assistant with access to the following functions. "
-                f"Use them if required -\n{tool_schema}"
-            ),
-        },
-        {
-            "role": "user",
-            "content": prompt,
-        },
-    ]
+    messages = INFERENCE_MESSAGES
 
     encoded = tokenizer.apply_chat_template(
         messages,
@@ -77,6 +52,7 @@ def run_inference(
         temperature=0.1,
         do_sample=True,
         pad_token_id=tokenizer.eos_token_id,
+
     )
 
     prompt_length = input_ids.shape[-1]

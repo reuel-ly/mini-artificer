@@ -27,3 +27,29 @@ WANDB_RUN_NAME = "smollm2-135m-lora-r4-10k-curated-7000steps"
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
 HF_MODEL_TAG = "10k-curated-7000steps"  # set to None or "" to skip tagging
+
+#inference.py
+INFERENCE_MESSAGES = [
+    {
+        "role": "system",
+        "content": (
+            "You are a helpful assistant with access to the following functions. "
+            f"Use them if required -\n{tool_schema}"
+        ),
+    },
+    {
+        "role": "user",
+        "content": prompt,
+    },
+]
+WEATHER_TOOL_SCHEMA = {
+    "name": "get_weather",
+    "description": "Get current weather for a location",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "location": {"type": "string", "description": "City name"},
+        },
+        "required": ["location"],
+    },
+}
