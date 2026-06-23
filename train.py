@@ -27,6 +27,7 @@ from config import (
     WANDB_RUN_NAME,
     HF_REPO_NAME,
     HF_MODEL_TAG,
+    HF_IGNORE_PATTERNS,
 )
 
 from chat_template import patch_chat_template
@@ -55,6 +56,7 @@ def push_to_hub(output_dir: str, repo_name: str, tag: str | None = None) -> None
         repo_id=repo_name,
         token=hf_token,
         commit_message=f"Add {tag} model" if tag else "Upload fine-tuned model",
+        ignore_patterns=HF_IGNORE_PATTERNS,
     )
     print(f"Model pushed to huggingface.co/{repo_name}")
 

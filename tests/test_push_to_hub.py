@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from config import HF_IGNORE_PATTERNS
 from train import push_to_hub
 
 
@@ -37,6 +38,7 @@ def test_push_to_hub_creates_tag_when_tag_provided(mock_api: MagicMock) -> None:
         repo_id="user/repo",
         token="hf_test_token",
         commit_message="Add 700-steps model",
+        ignore_patterns=HF_IGNORE_PATTERNS,
     )
     mock_api.create_tag.assert_called_once_with(
         repo_id="user/repo",
@@ -64,6 +66,7 @@ def test_push_to_hub_skips_tag_when_tag_empty(
         repo_id="user/repo",
         token="hf_test_token",
         commit_message="Upload fine-tuned model",
+        ignore_patterns=HF_IGNORE_PATTERNS,
     )
     mock_api.create_tag.assert_not_called()
 

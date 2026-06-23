@@ -27,6 +27,15 @@ WANDB_RUN_NAME = "smollm2-135m-lora-r4-10k-curated-7000steps"
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
 HF_MODEL_TAG = "10k-curated-7000steps"  # set to None or "" to skip tagging
+HF_IGNORE_PATTERNS = [
+    "checkpoint-*",
+    "training_args.bin",
+    "optimizer.pt",
+    "rng_state.pth",
+    "scaler.pt",
+    "scheduler.pt",
+    "trainer_state.json",
+]
 
 #inference.py
 INFERENCE_MESSAGES = [
