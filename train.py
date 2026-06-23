@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 from peft import LoraConfig, get_peft_model
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, EarlyStoppingCallback
 from trl import SFTConfig, SFTTrainer
 from huggingface_hub import HfApi
 import os
@@ -12,6 +12,8 @@ import os
 from config import (
     BATCH_SIZE,
     DATASET_SIZE,
+    EARLY_STOPPING_PATIENCE,
+    EVAL_STEPS,
     GRADIENT_ACCUMULATION_STEPS,
     LEARNING_RATE,
     LORA_ALPHA,
@@ -22,6 +24,7 @@ from config import (
     MAX_STEPS,
     MODEL_NAME,
     OUTPUT_DIR,
+    TRAIN_SPLIT_RATIO,
     WARMUP_STEPS,
     WANDB_PROJECT,
     WANDB_RUN_NAME,
@@ -87,9 +90,11 @@ def main() -> None:
     raw_ds = load_glaive_dataset()
 
     # 2. Preprocess using preprocess_sample (via preprocess_dataset)
-    train_ds = preprocess_dataset(raw_ds, max_samples=DATASET_SIZE)
-    print(f"Preprocessed {len(train_ds)} samples")
-    print(f"Sample 0: {train_ds[0]}")  
+    train_ds, eval_ds = preprocess_dataset(
+        raw_ds, max_samples=DATASET_SIZE, train_split_ratio=TRAIN_SPLIT_RATIO
+    )
+    print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
+    print(f"Sample 0: {train_ds[0]}")
 
     # 3. Load SmolLM2-135M-Instruct
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -122,8 +127,13 @@ def main() -> None:
         assistant_only_loss=True,
         fp16=torch.cuda.is_available(),
         logging_steps=10,
+        eval_strategy="steps",
+        eval_steps=EVAL_STEPS,
         save_strategy="steps",
-        save_steps=MAX_STEPS,
+        save_steps=EVAL_STEPS,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         report_to="wandb",
     )
 
@@ -132,7 +142,9 @@ def main() -> None:
         model=model,
         args=training_args,
         train_dataset=train_ds,
+        eval_dataset=eval_ds,
         processing_class=tokenizer,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=EARLY_STOPPING_PATIENCE)],
     )
 
     # 7. Train

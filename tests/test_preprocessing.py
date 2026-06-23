@@ -89,15 +89,42 @@ def test_preprocess_dataset_balances_positive_negative() -> None:
         rows.append({"system": "SYSTEM: Tools available.", "chat": positive_chat})
         rows.append({"system": "SYSTEM: You are helpful.", "chat": negative_chat})
 
-    result = preprocess_dataset(Dataset.from_list(rows), max_samples=10)
+    train_ds, eval_ds = preprocess_dataset(Dataset.from_list(rows), max_samples=10)
 
-    assert len(result) == 10
+    assert len(train_ds) + len(eval_ds) == 10
+    assert len(train_ds) == 9
+    assert len(eval_ds) == 1
+    combined = list(train_ds) + list(eval_ds)
     positive_count = sum(
-        1 for row in result if "<functioncall>" in row["messages"][2]["content"]
+        1 for row in combined if "<functioncall>" in row["messages"][2]["content"]
     )
-    negative_count = len(result) - positive_count
+    negative_count = len(combined) - positive_count
     assert positive_count == 8
     assert negative_count == 2
+
+
+def test_preprocess_dataset_train_eval_split() -> None:
+    from datasets import Dataset
+
+    positive_chat = (
+        "USER: US news?\n\n"
+        'ASSISTANT: <functioncall> {"name": "get_news"} <|endoftext|>'
+    )
+    negative_chat = (
+        "USER: Can you book a flight?\n\n"
+        "ASSISTANT: I'm sorry, I can't. <|endoftext|>"
+    )
+
+    rows = []
+    for _ in range(20):
+        rows.append({"system": "SYSTEM: Tools available.", "chat": positive_chat})
+        rows.append({"system": "SYSTEM: You are helpful.", "chat": negative_chat})
+
+    train_ds, eval_ds = preprocess_dataset(Dataset.from_list(rows), max_samples=20)
+
+    assert len(train_ds) + len(eval_ds) == 20
+    assert len(train_ds) == 18
+    assert len(eval_ds) == 2
 
 
 def test_preprocess_dataset_drops_invalid_rows() -> None:
@@ -120,10 +147,10 @@ def test_preprocess_dataset_drops_invalid_rows() -> None:
         ]
     )
 
-    result = preprocess_dataset(ds)
+    train_ds, eval_ds = preprocess_dataset(ds)
 
-    assert len(result) == 2
-    for row in result:
+    assert len(train_ds) + len(eval_ds) == 2
+    for row in list(train_ds) + list(eval_ds):
         assert row["messages"] is not None
         assert len(row["messages"]) == 3
         assert [m["role"] for m in row["messages"]] == ["system", "user", "assistant"]
@@ -161,6 +188,7 @@ def main():
     test_raw_regex()
     test_preprocess_edge_cases()
     test_preprocess_dataset_balances_positive_negative()
+    test_preprocess_dataset_train_eval_split()
     test_preprocess_dataset_drops_invalid_rows()
     test_real_samples()
     print("All preprocessing tests passed.")

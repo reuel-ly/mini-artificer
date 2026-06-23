@@ -45,11 +45,14 @@ def preprocess_sample(sample: dict) -> dict | None:
     }
 
 
-def preprocess_dataset(dataset: "Dataset", max_samples: int = 10_000) -> "Dataset":
+def preprocess_dataset(
+    dataset: "Dataset", max_samples: int = 10_000, train_split_ratio: float = 0.9
+) -> tuple["Dataset", "Dataset"]:
     """Preprocess rows, then curate a balanced subset for tool-calling SFT.
 
     Keeps up to 80% function-call samples and 20% negative (no-call) samples,
-    capped at ``max_samples`` total. Invalid rows are dropped.
+    capped at ``max_samples`` total. Invalid rows are dropped. The curated set
+    is shuffled and split into train/eval using ``train_split_ratio`` (default 90/10).
     """
     function_call_samples = []
     negative_samples = []
@@ -79,4 +82,9 @@ def preprocess_dataset(dataset: "Dataset", max_samples: int = 10_000) -> "Datase
 
     print(f"Positive samples: {len(function_call_samples[:n_positive])}")
     print(f"Negative samples: {len(negative_samples[:n_negative])}")
-    return Dataset.from_list(results)
+
+    split = int(len(results) * train_split_ratio)
+    train_data = Dataset.from_list(results[:split])
+    eval_data = Dataset.from_list(results[split:])
+    print(f"Train: {len(train_data)}, Eval: {len(eval_data)}")
+    return train_data, eval_data
