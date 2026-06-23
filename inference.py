@@ -6,7 +6,13 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
-from config import MODEL_NAME, OUTPUT_DIR, INFERENCE_MESSAGES, WEATHER_TOOL_SCHEMA
+from config import (
+    MODEL_NAME,
+    OUTPUT_DIR,
+    INFERENCE_MESSAGES,
+    WEATHER_TOOL_SCHEMA,
+    format_system_with_tools,
+)
 
 def _load_model_and_tokenizer(output_dir: str) -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -88,10 +94,7 @@ def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
     debug_messages = [
         {
             "role": "system",
-            "content": (
-                "You are a helpful assistant with access to the following functions. "
-                f"Use them if required -\n{WEATHER_TOOL_SCHEMA}"
-            ),
+            "content": format_system_with_tools(WEATHER_TOOL_SCHEMA),
         },
         {
             "role": "user",

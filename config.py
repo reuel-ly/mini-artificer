@@ -1,4 +1,6 @@
 # config.py
+import json
+
 MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
 DATASET_NAME = "glaiveai/glaive-function-calling-v2"
 OUTPUT_DIR = "./outputs/smol-lora"
@@ -37,7 +39,14 @@ HF_IGNORE_PATTERNS = [
     "trainer_state.json",
 ]
 
-#inference.py
+# inference
+def format_system_with_tools(tool_schema: dict) -> str:
+    return (
+        "You are a helpful assistant with access to the following functions. "
+        f"Use them if required -\n{json.dumps(tool_schema, indent=2)}"
+    )
+
+
 WEATHER_TOOL_SCHEMA = {
     "name": "get_weather",
     "description": "Get current weather for a location",
@@ -52,10 +61,7 @@ WEATHER_TOOL_SCHEMA = {
 INFERENCE_MESSAGES = [
     {
         "role": "system",
-        "content": (
-            "You are a helpful assistant with access to the following functions. "
-            f"Use them if required -\n{WEATHER_TOOL_SCHEMA}"
-        ),
+        "content": format_system_with_tools(WEATHER_TOOL_SCHEMA),
     },
     {
         "role": "user",
