@@ -18,6 +18,7 @@ This project teaches a small language model to emit structured tool/function cal
 
 - LoRA: r=4, alpha=8, targets `q_proj` / `k_proj` / `v_proj`
 - 10k curated samples, max 512 tokens, 7000 steps (published run)
+- Samples over 512 tokens are **dropped** (not truncated); duplicates removed; stratified 80/20 train/eval split per class; `seed=42`
 - Learning rate 5e-4, batch 4 × grad accum 4
 - W&B project: `mini-artificer`
 
