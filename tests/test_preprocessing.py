@@ -1,5 +1,12 @@
 from data_loader import load_glaive_dataset
-from preprocess_data import ASSISTANT_RE, USER_RE, preprocess_dataset, preprocess_sample
+from preprocess_data import (
+    ASSISTANT_RE,
+    USER_RE,
+    _dedupe,
+    filter_by_max_length,
+    preprocess_dataset,
+    preprocess_sample,
+)
 
 
 def assert_clean_result(result: dict, *, expect_functioncall: bool) -> None:
@@ -75,25 +82,33 @@ def test_preprocess_edge_cases() -> None:
 def test_preprocess_dataset_balances_positive_negative() -> None:
     from datasets import Dataset
 
-    positive_chat = (
-        "USER: US news?\n\n"
-        'ASSISTANT: <functioncall> {"name": "get_news"} <|endoftext|>'
-    )
-    negative_chat = (
-        "USER: Can you book a flight?\n\n"
-        "ASSISTANT: I'm sorry, I can't. <|endoftext|>"
-    )
-
     rows = []
-    for i in range(10):
-        rows.append({"system": "SYSTEM: Tools available.", "chat": positive_chat})
-        rows.append({"system": "SYSTEM: You are helpful.", "chat": negative_chat})
+    for i in range(8):
+        rows.append(
+            {
+                "system": "SYSTEM: Tools available.",
+                "chat": (
+                    f"USER: US news topic {i}?\n\n"
+                    f'ASSISTANT: <functioncall> {{"name": "get_news_{i}"}} <|endoftext|>'
+                ),
+            }
+        )
+    for i in range(2):
+        rows.append(
+            {
+                "system": "SYSTEM: You are helpful.",
+                "chat": (
+                    f"USER: Can you book flight {i}?\n\n"
+                    f"ASSISTANT: I'm sorry, I can't book flight {i}. <|endoftext|>"
+                ),
+            }
+        )
 
     train_ds, eval_ds = preprocess_dataset(Dataset.from_list(rows), max_samples=10)
 
     assert len(train_ds) + len(eval_ds) == 10
-    assert len(train_ds) == 9
-    assert len(eval_ds) == 1
+    assert len(train_ds) == 8
+    assert len(eval_ds) == 2
     combined = list(train_ds) + list(eval_ds)
     positive_count = sum(
         1 for row in combined if "<functioncall>" in row["messages"][2]["content"]
@@ -106,25 +121,33 @@ def test_preprocess_dataset_balances_positive_negative() -> None:
 def test_preprocess_dataset_train_eval_split() -> None:
     from datasets import Dataset
 
-    positive_chat = (
-        "USER: US news?\n\n"
-        'ASSISTANT: <functioncall> {"name": "get_news"} <|endoftext|>'
-    )
-    negative_chat = (
-        "USER: Can you book a flight?\n\n"
-        "ASSISTANT: I'm sorry, I can't. <|endoftext|>"
-    )
-
     rows = []
-    for _ in range(20):
-        rows.append({"system": "SYSTEM: Tools available.", "chat": positive_chat})
-        rows.append({"system": "SYSTEM: You are helpful.", "chat": negative_chat})
+    for i in range(16):
+        rows.append(
+            {
+                "system": "SYSTEM: Tools available.",
+                "chat": (
+                    f"USER: US news topic {i}?\n\n"
+                    f'ASSISTANT: <functioncall> {{"name": "get_news_{i}"}} <|endoftext|>'
+                ),
+            }
+        )
+    for i in range(4):
+        rows.append(
+            {
+                "system": "SYSTEM: You are helpful.",
+                "chat": (
+                    f"USER: Can you book flight {i}?\n\n"
+                    f"ASSISTANT: I'm sorry, I can't book flight {i}. <|endoftext|>"
+                ),
+            }
+        )
 
     train_ds, eval_ds = preprocess_dataset(Dataset.from_list(rows), max_samples=20)
 
     assert len(train_ds) + len(eval_ds) == 20
-    assert len(train_ds) == 18
-    assert len(eval_ds) == 2
+    assert len(train_ds) == 17
+    assert len(eval_ds) == 3
 
 
 def test_preprocess_dataset_drops_invalid_rows() -> None:
@@ -154,6 +177,83 @@ def test_preprocess_dataset_drops_invalid_rows() -> None:
         assert row["messages"] is not None
         assert len(row["messages"]) == 3
         assert [m["role"] for m in row["messages"]] == ["system", "user", "assistant"]
+
+
+def test_dedupe_removes_duplicate_messages() -> None:
+    sample = {
+        "messages": [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user"},
+            {"role": "assistant", "content": "assistant"},
+        ]
+    }
+    deduped = _dedupe([sample, sample, sample])
+    assert len(deduped) == 1
+
+
+def test_filter_by_max_length_drops_long_samples() -> None:
+    from unittest.mock import MagicMock
+
+    tokenizer = MagicMock()
+    short = {
+        "messages": [
+            {"role": "system", "content": "s"},
+            {"role": "user", "content": "u"},
+            {"role": "assistant", "content": "a"},
+        ]
+    }
+    long = {
+        "messages": [
+            {"role": "system", "content": "s"},
+            {"role": "user", "content": "u"},
+            {"role": "assistant", "content": "a" * 100},
+        ]
+    }
+
+    def tokenize(messages, tokenize=False):
+        length = 3 if messages[2]["content"] == "a" else 100
+        return list(range(length))
+
+    tokenizer.apply_chat_template.side_effect = tokenize
+
+    filtered = filter_by_max_length([short, long], tokenizer, max_length=10)
+    assert len(filtered) == 1
+    assert filtered[0] is short
+
+
+def test_stratified_split_preserves_class_ratio() -> None:
+    from datasets import Dataset
+
+    rows = []
+    for i in range(80):
+        rows.append(
+            {
+                "system": "SYSTEM: Tools available.",
+                "chat": (
+                    f"USER: News {i}?\n\n"
+                    f'ASSISTANT: <functioncall> {{"name": "tool_{i}"}} <|endoftext|>'
+                ),
+            }
+        )
+    for i in range(20):
+        rows.append(
+            {
+                "system": "SYSTEM: You are helpful.",
+                "chat": (
+                    f"USER: Question {i}?\n\n"
+                    f"ASSISTANT: Answer {i}. <|endoftext|>"
+                ),
+            }
+        )
+
+    train_ds, eval_ds = preprocess_dataset(Dataset.from_list(rows), max_samples=100)
+
+    def positive_ratio(ds) -> float:
+        pos = sum(1 for row in ds if "<functioncall>" in row["messages"][2]["content"])
+        return pos / len(ds)
+
+    assert 0.78 <= positive_ratio(train_ds) <= 0.82
+    assert 0.78 <= positive_ratio(eval_ds) <= 0.82
 
 
 def find_sample(dataset, predicate):
