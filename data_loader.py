@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
+from config import DATASET_NAME
+
 if TYPE_CHECKING:
     from datasets import Dataset
 
-DATASET_ID = "glaiveai/glaive-function-calling-v2"
 JSON_FILENAME = "glaive-function-calling-v2.json"
 
 
@@ -21,9 +22,9 @@ def load_glaive_dataset(split: str = "train") -> "Dataset":
     try:
         from datasets import load_dataset
 
-        return load_dataset(DATASET_ID)[split]
-    except (ImportError, Exception) as e:
-        print(f"load_dataset failed, using JSON fallback: {e}")
+        return load_dataset(DATASET_NAME)[split]
+    except ImportError as e:
+        print(f"datasets import failed, using JSON fallback: {e}")
         return _load_from_json()
 
 
@@ -32,7 +33,7 @@ def _load_from_json() -> "Dataset":
     from huggingface_hub import hf_hub_download
 
     path = hf_hub_download(
-        repo_id=DATASET_ID,
+        repo_id=DATASET_NAME,
         filename=JSON_FILENAME,
         repo_type="dataset",
     )
