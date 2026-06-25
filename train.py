@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 from peft import LoraConfig, get_peft_model
-from transformers import AutoModelForCausalLM, AutoTokenizer, EarlyStoppingCallback
+from transformers import AutoModelForCausalLM, AutoTokenizer, EarlyStoppingCallback, set_seed
 from trl import SFTConfig, SFTTrainer
 from huggingface_hub import HfApi
 import os
@@ -25,6 +25,7 @@ from config import (
     MODEL_NAME,
     OUTPUT_DIR,
     TRAIN_SPLIT_RATIO,
+    SEED,
     WARMUP_STEPS,
     WANDB_PROJECT,
     WANDB_RUN_NAME,
@@ -84,87 +85,98 @@ def push_to_hub(output_dir: str, repo_name: str, tag: str | None = None) -> None
 
 
 def main() -> None:
+    set_seed(SEED)
     wandb.init(project=WANDB_PROJECT, name=WANDB_RUN_NAME)
 
-    # 1. Load the dataset
-    raw_ds = load_glaive_dataset()
+    try:
+        # 1. Load the dataset
+        raw_ds = load_glaive_dataset()
 
-    # 2. Preprocess using preprocess_sample (via preprocess_dataset)
-    train_ds, eval_ds = preprocess_dataset(
-        raw_ds, max_samples=DATASET_SIZE, train_split_ratio=TRAIN_SPLIT_RATIO
-    )
-    print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
-    print(f"Sample 0: {train_ds[0]}")
+        # 2. Load tokenizer (needed for length filtering during preprocessing)
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        tokenizer = patch_chat_template(tokenizer)
 
-    # 3. Load SmolLM2-135M-Instruct
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    tokenizer = patch_chat_template(tokenizer)
+        # 3. Preprocess and curate train/eval splits
+        train_ds, eval_ds = preprocess_dataset(
+            raw_ds,
+            max_samples=DATASET_SIZE,
+            train_split_ratio=TRAIN_SPLIT_RATIO,
+            tokenizer=tokenizer,
+            max_length=MAX_SEQ_LENGTH,
+        )
+        print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
+        print(f"Sample 0: {train_ds[0]}")
 
-    # 4. Apply LoRA config
-    lora_config = LoraConfig(
-        r=LORA_R,
-        lora_alpha=LORA_ALPHA,
-        target_modules=LORA_TARGET_MODULES,
-        lora_dropout=LORA_DROPOUT,
-        bias="none",
-        task_type="CAUSAL_LM",
-    )
-    model = get_peft_model(model, lora_config)
-    model.print_trainable_parameters()
+        # 4. Load SmolLM2-135M-Instruct
+        model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
 
-    # 5. Define training arguments
-    training_args = SFTConfig(
-        output_dir=OUTPUT_DIR,
-        max_steps=MAX_STEPS,
-        per_device_train_batch_size=BATCH_SIZE,
-        gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
-        learning_rate=LEARNING_RATE,
-        warmup_steps=WARMUP_STEPS,
-        max_length=MAX_SEQ_LENGTH,
-        assistant_only_loss=True,
-        fp16=torch.cuda.is_available(),
-        logging_steps=10,
-        eval_strategy="steps",
-        eval_steps=EVAL_STEPS,
-        save_strategy="steps",
-        save_steps=EVAL_STEPS,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        greater_is_better=False,
-        report_to="wandb",
-    )
+        # 5. Apply LoRA config
+        lora_config = LoraConfig(
+            r=LORA_R,
+            lora_alpha=LORA_ALPHA,
+            target_modules=LORA_TARGET_MODULES,
+            lora_dropout=LORA_DROPOUT,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, lora_config)
+        model.print_trainable_parameters()
 
-    # 6. Initialize SFTTrainer
-    trainer = SFTTrainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_ds,
-        eval_dataset=eval_ds,
-        processing_class=tokenizer,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=EARLY_STOPPING_PATIENCE)],
-    )
+        # 6. Define training arguments
+        training_args = SFTConfig(
+            output_dir=OUTPUT_DIR,
+            max_steps=MAX_STEPS,
+            per_device_train_batch_size=BATCH_SIZE,
+            gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
+            learning_rate=LEARNING_RATE,
+            warmup_steps=WARMUP_STEPS,
+            max_length=MAX_SEQ_LENGTH,
+            assistant_only_loss=True,
+            fp16=torch.cuda.is_available(),
+            logging_steps=10,
+            eval_strategy="steps",
+            eval_steps=EVAL_STEPS,
+            save_strategy="steps",
+            save_steps=EVAL_STEPS,
+            load_best_model_at_end=True,
+            metric_for_best_model="eval_loss",
+            greater_is_better=False,
+            report_to="wandb",
+            seed=SEED,
+        )
 
-    # 7. Train
-    trainer.train()
+        # 7. Initialize SFTTrainer
+        trainer = SFTTrainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_ds,
+            eval_dataset=eval_ds,
+            processing_class=tokenizer,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=EARLY_STOPPING_PATIENCE)],
+        )
 
-    # 8. Save the model
-    trainer.save_model(OUTPUT_DIR)
-    tokenizer.save_pretrained(OUTPUT_DIR)
-    print(f"Model saved to {OUTPUT_DIR}")
+        # 8. Train
+        trainer.train()
 
-    # 9. Run inference smoke tests
-    print("Running post-training inference tests...")
-    run_inference_tests(output_dir=OUTPUT_DIR)
+        # 9. Save the model
+        trainer.save_model(OUTPUT_DIR)
+        tokenizer.save_pretrained(OUTPUT_DIR)
+        print(f"Model saved to {OUTPUT_DIR}")
 
-    # 10. Push to HuggingFace Hub
-    push_to_hub(
-        output_dir=OUTPUT_DIR,
-        repo_name=HF_REPO_NAME,
-        tag=HF_MODEL_TAG or None,
-    )
+        # 10. Run inference smoke tests
+        print("Running post-training inference tests...")
+        run_inference_tests(output_dir=OUTPUT_DIR)
+
+        # 11. Push to HuggingFace Hub
+        push_to_hub(
+            output_dir=OUTPUT_DIR,
+            repo_name=HF_REPO_NAME,
+            tag=HF_MODEL_TAG or None,
+        )
+    finally:
+        wandb.finish()
 
 
 if __name__ == "__main__":
