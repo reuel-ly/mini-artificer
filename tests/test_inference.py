@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import torch
 
@@ -73,3 +73,24 @@ def test_run_inference_builds_messages_from_args() -> None:
     assert messages[0]["content"] == format_system_with_tools(WEATHER_TOOL_SCHEMA)
     assert messages[1]["role"] == "user"
     assert messages[1]["content"] == prompt
+
+
+def test_load_model_and_tokenizer_patches_chat_template() -> None:
+    from inference import _load_model_and_tokenizer
+
+    mock_tokenizer = MagicMock()
+    mock_tokenizer.pad_token = None
+    mock_tokenizer.eos_token = "</s>"
+
+    mock_model = MagicMock()
+    mock_model.parameters.return_value = iter([torch.zeros(1)])
+
+    with (
+        patch("inference.AutoTokenizer.from_pretrained", return_value=mock_tokenizer),
+        patch("inference.AutoModelForCausalLM.from_pretrained", return_value=mock_model),
+        patch("inference.PeftModel.from_pretrained", return_value=mock_model),
+        patch("inference.patch_chat_template", side_effect=lambda t: t) as mock_patch,
+    ):
+        _load_model_and_tokenizer("/tmp/output")
+
+    mock_patch.assert_called_once_with(mock_tokenizer)
