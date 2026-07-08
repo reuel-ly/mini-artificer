@@ -40,6 +40,34 @@ from preprocess_data import preprocess_dataset
 
 import wandb
 
+_ACCELERATE_LAUNCH_HINT = (
+    "Launch multi-GPU training with DDP via Accelerate, e.g.\n"
+    "  accelerate launch --multi_gpu --mixed_precision fp16 train.py\n"
+    "or\n"
+    "  accelerate launch --config_file accelerate_config.yaml train.py"
+)
+
+
+def _is_main_process() -> bool:
+    local_rank = int(os.environ.get("LOCAL_RANK", -1))
+    return local_rank in (-1, 0)
+
+
+def _is_distributed_launch() -> bool:
+    return int(os.environ.get("WORLD_SIZE", "1")) > 1 or os.environ.get("LOCAL_RANK") is not None
+
+
+def _require_ddp_for_multi_gpu() -> None:
+    if not torch.cuda.is_available() or torch.cuda.device_count() <= 1:
+        return
+    if _is_distributed_launch():
+        return
+    raise RuntimeError(
+        "Multiple GPUs detected, but training was started with plain `python train.py`. "
+        "HuggingFace Trainer falls back to DataParallel in that mode, which breaks PEFT/LoRA.\n"
+        f"{_ACCELERATE_LAUNCH_HINT}"
+    )
+
 
 def push_to_hub(output_dir: str, repo_name: str, tag: str | None = None) -> None:
     """Push fine-tuned model to HuggingFace Hub on a named branch (tag) or main."""
@@ -84,8 +112,8 @@ def push_to_hub(output_dir: str, repo_name: str, tag: str | None = None) -> None
 
 
 def main() -> None:
+    _require_ddp_for_multi_gpu()
     set_seed(SEED)
-    wandb.init(project=WANDB_PROJECT, name=WANDB_RUN_NAME)
 
     try:
         # 1. Load the dataset
@@ -142,7 +170,9 @@ def main() -> None:
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            report_to="wandb",
+            report_to="wandb" if _is_main_process() else "none",
+            run_name=WANDB_RUN_NAME,
+            ddp_find_unused_parameters=False,
             seed=SEED,
         )
 
@@ -155,26 +185,31 @@ def main() -> None:
             processing_class=tokenizer,
         )
 
+        if _is_main_process():
+            wandb.init(project=WANDB_PROJECT, name=WANDB_RUN_NAME)
+
         # 8. Train
         trainer.train()
 
-        # 9. Save the model
-        trainer.save_model(OUTPUT_DIR)
-        tokenizer.save_pretrained(OUTPUT_DIR)
-        print(f"Model saved to {OUTPUT_DIR}")
+        if trainer.is_world_process_zero():
+            # 9. Save the model
+            trainer.save_model(OUTPUT_DIR)
+            tokenizer.save_pretrained(OUTPUT_DIR)
+            print(f"Model saved to {OUTPUT_DIR}")
 
-        # 10. Run inference smoke tests
-        print("Running post-training inference tests...")
-        run_inference_tests(output_dir=OUTPUT_DIR)
+            # 10. Run inference smoke tests
+            print("Running post-training inference tests...")
+            run_inference_tests(output_dir=OUTPUT_DIR)
 
-        # 11. Push to HuggingFace Hub
-        push_to_hub(
-            output_dir=OUTPUT_DIR,
-            repo_name=HF_REPO_NAME,
-            tag=HF_MODEL_TAG or None,
-        )
+            # 11. Push to HuggingFace Hub
+            push_to_hub(
+                output_dir=OUTPUT_DIR,
+                repo_name=HF_REPO_NAME,
+                tag=HF_MODEL_TAG or None,
+            )
     finally:
-        wandb.finish()
+        if _is_main_process() and wandb.run is not None:
+            wandb.finish()
 
 
 if __name__ == "__main__":
