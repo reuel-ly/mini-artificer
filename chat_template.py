@@ -2,7 +2,11 @@
 
 
 def patch_chat_template(tokenizer):
-    """Patch SmolLM2 chat template to be TRL training-compatible."""
+    """Patch SmolLM2 chat template to be TRL training-compatible.
+
+    ``<|im_end|>`` must sit inside ``{% generation %}`` so ``assistant_only_loss``
+    supervises the turn-ending stop token.
+    """
     tokenizer.chat_template = (
         "{% for message in messages %}"
         "{% if message['role'] == 'system' %}"
@@ -12,9 +16,8 @@ def patch_chat_template(tokenizer):
         "{% elif message['role'] == 'assistant' %}"
         "<|im_start|>assistant\n"
         "{% generation %}"
-        "{{ message['content'] }}"
+        "{{ message['content'] }}<|im_end|>\n"
         "{% endgeneration %}"
-        "<|im_end|>\n"
         "{% endif %}"
         "{% endfor %}"
         "{% if add_generation_prompt %}"
