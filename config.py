@@ -35,11 +35,11 @@ EVAL_STEPS = 100
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-135m-lora-r4-30k-curated-5000steps-2"
+WANDB_RUN_NAME = "smollm2-135m-lora-r16-30k-curated-5000steps"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "30k-curated-5000steps-2"  # Hub branch name; set to None or "" to push to main
+HF_MODEL_TAG = "30k-curated-r16-5000steps"  # Hub branch name; set to None or "" to push to main
 HF_IGNORE_PATTERNS = [
     "checkpoint-*",
     "training_args.bin",
