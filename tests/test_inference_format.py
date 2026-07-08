@@ -10,3 +10,5 @@ def test_format_system_with_tools_uses_json_not_python_repr() -> None:
     assert '"name": "get_weather"' in content
     assert "'name':" not in content
     assert content.endswith(expected_json)
+    assert "call a function only when the request needs one" in content
+    assert "plain text without a function call" in content

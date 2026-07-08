@@ -18,6 +18,10 @@ def test_patch_chat_template_adds_generation_markers() -> None:
     patch_chat_template(tokenizer)
 
     assert has_generation_markers(tokenizer.chat_template)
+    assert (
+        "{% generation %}{{ message['content'] }}<|im_end|>\n{% endgeneration %}"
+        in tokenizer.chat_template
+    )
 
     original_text = tokenizer.apply_chat_template(
         SAMPLE_MESSAGES, tokenize=False, chat_template=original_template

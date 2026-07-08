@@ -10,7 +10,8 @@ from config import (
     WEATHER_TOOL_SCHEMA,
     format_system_with_tools,
 )
-from inference import run_inference
+from inference import StopAfterFunctionCall, run_inference
+from transformers import StoppingCriteriaList
 
 
 def _make_mock_tokenizer(input_ids: torch.Tensor) -> MagicMock:
@@ -55,7 +56,27 @@ def test_run_inference_passes_generation_kwargs() -> None:
     assert kwargs["eos_token_id"] == [0, 42]
     assert kwargs["repetition_penalty"] == REPETITION_PENALTY
     assert kwargs["no_repeat_ngram_size"] == NO_REPEAT_NGRAM_SIZE
+    assert isinstance(kwargs["stopping_criteria"], StoppingCriteriaList)
+    assert isinstance(kwargs["stopping_criteria"][0], StopAfterFunctionCall)
     assert torch.equal(kwargs["attention_mask"], torch.ones_like(input_ids))
+
+
+def test_stop_after_functioncall_criteria() -> None:
+    tokenizer = MagicMock()
+    criteria = StopAfterFunctionCall(tokenizer, prompt_length=2)
+
+    tokenizer.decode.return_value = '<functioncall> {"name": "get_weather"'
+    assert criteria(torch.tensor([[1, 2, 3, 4]]), torch.zeros(1, 1)) is False
+
+    tokenizer.decode.return_value = (
+        '<functioncall> {"name": "get_weather", "arguments": "{}"}</functioncall>'
+    )
+    assert criteria(torch.tensor([[1, 2, 3, 4]]), torch.zeros(1, 1)) is True
+
+    tokenizer.decode.return_value = (
+        '<functioncall> {"name": "get_weather", "arguments": "{}"}'
+    )
+    assert criteria(torch.tensor([[1, 2, 3, 4]]), torch.zeros(1, 1)) is True
 
 
 def test_run_inference_builds_messages_from_args() -> None:
