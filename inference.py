@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import torch
 from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerBase,
+    StoppingCriteria,
+    StoppingCriteriaList,
+)
 
 from chat_template import patch_chat_template
 from config import (
@@ -17,6 +24,29 @@ from config import (
     WEATHER_TOOL_SCHEMA,
     format_system_with_tools,
 )
+
+
+class StopAfterFunctionCall(StoppingCriteria):
+    """Stop once a complete function-call block has been generated."""
+
+    def __init__(self, tokenizer: PreTrainedTokenizerBase, prompt_length: int) -> None:
+        self.tokenizer = tokenizer
+        self.prompt_length = prompt_length
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        generated = input_ids[0, self.prompt_length :]
+        text = self.tokenizer.decode(generated, skip_special_tokens=True)
+        if "</functioncall>" in text:
+            return True
+        if "<functioncall>" not in text:
+            return False
+        after = text.split("<functioncall>", 1)[1].strip()
+        return (
+            after.startswith("{")
+            and after.count("{") == after.count("}")
+            and after.endswith("}")
+        )
+
 
 def _generation_eos_token_ids(tokenizer: PreTrainedTokenizerBase) -> list[int]:
     """Stop generation on standard EOS and SmolLM2 chat turn markers."""
@@ -75,6 +105,7 @@ def run_inference(
         else encoded["input_ids"].to(device)
     )
     attention_mask = torch.ones_like(input_ids)
+    prompt_length = input_ids.shape[-1]
 
     output = model.generate(
         input_ids,
@@ -86,9 +117,11 @@ def run_inference(
         eos_token_id=_generation_eos_token_ids(tokenizer),
         repetition_penalty=REPETITION_PENALTY,
         no_repeat_ngram_size=NO_REPEAT_NGRAM_SIZE,
+        stopping_criteria=StoppingCriteriaList(
+            [StopAfterFunctionCall(tokenizer, prompt_length)]
+        ),
     )
 
-    prompt_length = input_ids.shape[-1]
     new_tokens = output[0][prompt_length:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True)
 
