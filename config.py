@@ -9,18 +9,18 @@ OUTPUT_DIR = "./outputs/smol-lora"
 LORA_R = 4
 LORA_ALPHA = 8
 LORA_TARGET_MODULES = ["q_proj", "k_proj", "v_proj"]
-LORA_DROPOUT = 0.05
+LORA_DROPOUT = 0.1
 
 # Dataset
-DATASET_SIZE = 10_000
+DATASET_SIZE = 30_000
 TRAIN_SPLIT_RATIO = 0.9
 SEED = 42
 
 # Training
-LEARNING_RATE = 5e-4
+LEARNING_RATE = 2e-4
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 4
-MAX_STEPS = 7000
+MAX_STEPS = 5000
 WARMUP_STEPS = 200
 GRADIENT_ACCUMULATION_STEPS = 4
 EVAL_STEPS = 100
@@ -28,11 +28,11 @@ EARLY_STOPPING_PATIENCE = 3
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-135m-lora-r4-10k-curated-7000steps-2"
+WANDB_RUN_NAME = "smollm2-135m-lora-r4-30k-curated-5000steps"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "10k-curated-7000steps-2"  # Hub branch name; set to None or "" to push to main
+HF_MODEL_TAG = "30k-curated-5000steps"  # Hub branch name; set to None or "" to push to main
 HF_IGNORE_PATTERNS = [
     "checkpoint-*",
     "training_args.bin",
@@ -47,7 +47,7 @@ HF_IGNORE_PATTERNS = [
 MAX_NEW_TOKENS = 150
 TEMPERATURE = 0.1
 REPETITION_PENALTY = 1.3
-NO_REPEAT_NGRAM_SIZE = 10
+NO_REPEAT_NGRAM_SIZE = 3
 
 
 def format_system_with_tools(tool_schema: dict) -> str:

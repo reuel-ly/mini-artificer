@@ -17,6 +17,8 @@ def _make_mock_tokenizer(input_ids: torch.Tensor) -> MagicMock:
     tokenizer = MagicMock()
     tokenizer.apply_chat_template.return_value = input_ids
     tokenizer.eos_token_id = 0
+    tokenizer.unk_token_id = 1
+    tokenizer.convert_tokens_to_ids.return_value = 42
     tokenizer.decode.return_value = "generated text"
     return tokenizer
 
@@ -50,6 +52,7 @@ def test_run_inference_passes_generation_kwargs() -> None:
     assert kwargs["temperature"] == TEMPERATURE
     assert kwargs["do_sample"] is True
     assert kwargs["pad_token_id"] == mock_tokenizer.eos_token_id
+    assert kwargs["eos_token_id"] == [0, 42]
     assert kwargs["repetition_penalty"] == REPETITION_PENALTY
     assert kwargs["no_repeat_ngram_size"] == NO_REPEAT_NGRAM_SIZE
     assert torch.equal(kwargs["attention_mask"], torch.ones_like(input_ids))

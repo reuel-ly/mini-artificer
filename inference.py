@@ -18,6 +18,15 @@ from config import (
     format_system_with_tools,
 )
 
+def _generation_eos_token_ids(tokenizer: PreTrainedTokenizerBase) -> list[int]:
+    """Stop generation on standard EOS and SmolLM2 chat turn markers."""
+    eos_ids = {tokenizer.eos_token_id}
+    im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
+    if im_end_id is not None and im_end_id != tokenizer.unk_token_id:
+        eos_ids.add(im_end_id)
+    return sorted(eos_ids)
+
+
 def _load_model_and_tokenizer(output_dir: str) -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = AutoTokenizer.from_pretrained(output_dir)
@@ -74,6 +83,7 @@ def run_inference(
         temperature=TEMPERATURE,
         do_sample=True,
         pad_token_id=tokenizer.eos_token_id,
+        eos_token_id=_generation_eos_token_ids(tokenizer),
         repetition_penalty=REPETITION_PENALTY,
         no_repeat_ngram_size=NO_REPEAT_NGRAM_SIZE,
     )
