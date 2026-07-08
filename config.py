@@ -6,9 +6,17 @@ DATASET_NAME = "glaiveai/glaive-function-calling-v2"
 OUTPUT_DIR = "./outputs/smol-lora"
 
 # LoRA
-LORA_R = 4
-LORA_ALPHA = 8
-LORA_TARGET_MODULES = ["q_proj", "k_proj", "v_proj"]
+LORA_R = 16
+LORA_ALPHA = 32
+LORA_TARGET_MODULES = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+]
 LORA_DROPOUT = 0.1
 
 # Dataset
@@ -52,7 +60,9 @@ NO_REPEAT_NGRAM_SIZE = 3
 def format_system_with_tools(tool_schema: dict) -> str:
     return (
         "You are a helpful assistant with access to the following functions. "
-        f"Use them if required -\n{json.dumps(tool_schema, indent=2)}"
+        "Use them if required - call a function only when the request needs one; "
+        "otherwise answer in plain text without a function call.\n"
+        f"{json.dumps(tool_schema, indent=2)}"
     )
 
 
