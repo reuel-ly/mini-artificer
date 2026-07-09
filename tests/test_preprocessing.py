@@ -93,7 +93,7 @@ def test_preprocess_dataset_balances_positive_negative() -> None:
                 ),
             }
         )
-    for i in range(2):
+    for i in range(4):
         rows.append(
             {
                 "system": "SYSTEM: You are helpful.",
@@ -114,8 +114,8 @@ def test_preprocess_dataset_balances_positive_negative() -> None:
         1 for row in combined if "<functioncall>" in row["messages"][2]["content"]
     )
     negative_count = len(combined) - positive_count
-    assert positive_count == 8
-    assert negative_count == 2
+    assert positive_count == 6
+    assert negative_count == 4
 
 
 def test_preprocess_dataset_train_eval_split() -> None:
@@ -132,7 +132,7 @@ def test_preprocess_dataset_train_eval_split() -> None:
                 ),
             }
         )
-    for i in range(4):
+    for i in range(8):
         rows.append(
             {
                 "system": "SYSTEM: You are helpful.",
@@ -235,7 +235,7 @@ def test_stratified_split_preserves_class_ratio() -> None:
                 ),
             }
         )
-    for i in range(20):
+    for i in range(50):
         rows.append(
             {
                 "system": "SYSTEM: You are helpful.",
@@ -252,8 +252,8 @@ def test_stratified_split_preserves_class_ratio() -> None:
         pos = sum(1 for row in ds if "<functioncall>" in row["messages"][2]["content"])
         return pos / len(ds)
 
-    assert 0.78 <= positive_ratio(train_ds) <= 0.82
-    assert 0.78 <= positive_ratio(eval_ds) <= 0.82
+    assert 0.58 <= positive_ratio(train_ds) <= 0.62
+    assert 0.58 <= positive_ratio(eval_ds) <= 0.62
 
 
 def find_sample(dataset, predicate):
