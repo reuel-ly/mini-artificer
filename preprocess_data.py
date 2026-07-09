@@ -6,6 +6,8 @@ import random
 import re
 from typing import TYPE_CHECKING, Any
 
+from config import POSITIVE_SAMPLE_RATIO
+
 if TYPE_CHECKING:
     from datasets import Dataset
 
@@ -115,7 +117,7 @@ def preprocess_dataset(
 ) -> tuple["Dataset", "Dataset"]:
     """Preprocess rows, then curate a balanced subset for tool-calling SFT.
 
-    Keeps up to 80% function-call samples and 20% negative (no-call) samples,
+    Keeps up to 60% function-call samples and 40% negative (no-call) samples,
     capped at ``max_samples`` total. Invalid rows are dropped. Duplicates are
     removed, over-length rows are dropped when ``tokenizer`` and ``max_length``
     are provided, and the curated set is split stratified by class into
@@ -174,8 +176,8 @@ def preprocess_dataset(
     random.shuffle(strict_negative_samples)
     random.shuffle(fallback_negative_samples)
 
-    n_positive = int(max_samples * 0.8)
-    n_negative = int(max_samples * 0.2)
+    n_positive = int(max_samples * POSITIVE_SAMPLE_RATIO)
+    n_negative = max_samples - n_positive
 
     curated_pos = function_call_samples[:n_positive]
     curated_neg = strict_negative_samples[:n_negative]
