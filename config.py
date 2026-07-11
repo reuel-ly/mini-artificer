@@ -21,7 +21,7 @@ LORA_DROPOUT = 0.1
 
 # Dataset
 DATASET_SIZE = 30_000
-POSITIVE_SAMPLE_RATIO = 0.6
+POSITIVE_SAMPLE_RATIO = 0.5
 TRAIN_SPLIT_RATIO = 0.9
 SEED = 42
 
@@ -36,11 +36,11 @@ EVAL_STEPS = 100
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-135m-lora-r16-30k-60-40-8000steps"
+WANDB_RUN_NAME = "smollm2-135m-lora-r16-30k-50-50-8000steps"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "30k-60-40-r16-8000steps"  # Hub branch name; set to None or "" to push to main
+HF_MODEL_TAG = "30k-50-50-r16-8000steps"  # Hub branch name; set to None or "" to push to main
 HF_IGNORE_PATTERNS = [
     "checkpoint-*",
     "training_args.bin",

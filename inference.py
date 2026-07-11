@@ -129,7 +129,8 @@ def run_inference(
 def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
     model, tokenizer = _load_model_and_tokenizer(output_dir)
 
-    print("=== Test 1: Should call tool ===")
+    # --- Positive: direct weather query ---
+    print("=== Test 1: Should call tool (weather query) ===")
     result = run_inference(
         "What is the weather in Manila?",
         WEATHER_TOOL_SCHEMA,
@@ -137,10 +138,32 @@ def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
         tokenizer=tokenizer,
     )
     print(result)
-    
     print('='*10)
 
-    print("\n=== Test 2: Should NOT call tool ===")
+    # --- Positive: different city, confirms argument extraction ---
+    print("\n=== Test 2: Should call tool (different city) ===")
+    result = run_inference(
+        "How is the weather in Tokyo today?",
+        WEATHER_TOOL_SCHEMA,
+        model=model,
+        tokenizer=tokenizer,
+    )
+    print(result)
+    print('='*10)
+
+    # --- Easy negative: completely off-topic (no location, no weather) ---
+    print("\n=== Test 3: Should NOT call tool (easy — unrelated query) ===")
+    result = run_inference(
+        "Can you tell me a joke?",
+        WEATHER_TOOL_SCHEMA,
+        model=model,
+        tokenizer=tokenizer,
+    )
+    print(result)
+    print('='*10)
+
+    # --- Hard negative: information lookup, not weather ---
+    print("\n=== Test 4: Should NOT call tool (hard — info query, wrong domain) ===")
     result = run_inference(
         "What is the capital of the Philippines?",
         WEATHER_TOOL_SCHEMA,
@@ -148,7 +171,6 @@ def run_inference_tests(output_dir: str = OUTPUT_DIR) -> None:
         tokenizer=tokenizer,
     )
     print(result)
-
     print('='*10)
 
     debug_messages = [
