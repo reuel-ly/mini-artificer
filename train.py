@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 from peft import LoraConfig, get_peft_model
-from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
+from transformers import AutoModelForCausalLM, AutoTokenizer, EarlyStoppingCallback, set_seed
 from trl import SFTConfig, SFTTrainer
 from huggingface_hub import HfApi
 import os
@@ -12,6 +12,7 @@ import os
 from config import (
     BATCH_SIZE,
     DATASET_SIZE,
+    EARLY_STOPPING_PATIENCE,
     EVAL_STEPS,
     GRADIENT_ACCUMULATION_STEPS,
     LEARNING_RATE,
@@ -183,6 +184,11 @@ def main() -> None:
             train_dataset=train_ds,
             eval_dataset=eval_ds,
             processing_class=tokenizer,
+            callbacks=[
+                EarlyStoppingCallback(
+                    early_stopping_patience=EARLY_STOPPING_PATIENCE
+                )
+            ],
         )
 
         if _is_main_process():

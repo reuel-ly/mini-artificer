@@ -117,8 +117,8 @@ def preprocess_dataset(
 ) -> tuple["Dataset", "Dataset"]:
     """Preprocess rows, then curate a balanced subset for tool-calling SFT.
 
-    Keeps up to 60% function-call samples and 40% negative (no-call) samples,
-    capped at ``max_samples`` total. Invalid rows are dropped. Duplicates are
+    Keeps up to POSITIVE_SAMPLE_RATIO function-call samples and the remainder
+    as negative (no-call) samples, capped at ``max_samples`` total. Invalid rows are dropped. Duplicates are
     removed, over-length rows are dropped when ``tokenizer`` and ``max_length``
     are provided, and the curated set is split stratified by class into
     train/eval using ``train_split_ratio`` (default 90/10).
