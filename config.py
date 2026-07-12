@@ -48,7 +48,6 @@ HF_IGNORE_PATTERNS = [
     "rng_state.pth",
     "scaler.pt",
     "scheduler.pt",
-    "trainer_state.json",
 ]
 
 # Inference generation
