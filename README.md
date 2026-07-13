@@ -33,8 +33,28 @@ Runs 1–2 used exploratory training on larger raw subsets (112k samples, partia
 | Run 3 | 700 | 10k curated (1.1 epoch) | 0.4181 | 420 Steps: 0.2927 | 91.59% | 420 Steps: 93.91% |
 | Run 4 | 7000 | 10k curated | 0.3408 | 4890 Steps: 0.1461 | 92.59% | 4890 Steps: 97.99% |
 
-## Repository
+## File Structure
 
-- `train.py` — fine-tune and push to Hub
-- `inference.py` — smoke-test tool-calling prompts
-- `config.py` — hyperparameters and Hub repo name
+```
+mini-artificer/
+├── accelerate_config.yaml   # Accelerate multi-GPU / device settings
+├── chat_template.py         # SmolLM2 chat template helpers for TRL
+├── config.py                # Hyperparameters, paths, and Hub repo name
+├── data_loader.py           # Load Glaive function-calling v2 from Hub
+├── inference.py             # Smoke-test tool-calling prompts
+├── preprocess_data.py       # Convert Glaive samples to chat format for SFT
+├── train.py                 # LoRA fine-tune and push adapter to Hub
+├── pyproject.toml           # Package metadata and dependencies
+├── uv.lock                  # Locked dependency versions
+├── scripts/
+│   └── kaggle_training_script.ipynb  # Kaggle notebook for training
+└── tests/
+    ├── test_chat_template.py
+    ├── test_data_loader.py
+    ├── test_inference.py
+    ├── test_inference_format.py
+    ├── test_preprocessing.py
+    ├── test_push_to_hub.py
+    ├── test_tokenizer_save.py
+    └── test_train_launch.py
+```
