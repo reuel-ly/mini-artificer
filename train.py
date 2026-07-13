@@ -137,7 +137,7 @@ def main() -> None:
         print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
         print(f"Sample 0: {train_ds[0]}")
 
-        # 4. Load SmolLM2-135M-Instruct
+        # 4. Load SmolLM2-360M-Instruct
         model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
 
         # 5. Apply LoRA config

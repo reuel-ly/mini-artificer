@@ -1,7 +1,7 @@
 # config.py
 import json
 
-MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
+MODEL_NAME = "HuggingFaceTB/SmolLM2-360M-Instruct"
 DATASET_NAME = "glaiveai/glaive-function-calling-v2"
 OUTPUT_DIR = "./outputs/smol-lora"
 
@@ -16,6 +16,7 @@ LORA_TARGET_MODULES = [
     "gate_proj",
     "up_proj",
     "down_proj",
+    "lm_head",
 ]
 LORA_DROPOUT = 0.15
 
@@ -37,11 +38,11 @@ EARLY_STOPPING_PATIENCE = 5
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-135m-lora-r8-30k-50-50-es5"
+WANDB_RUN_NAME = "smollm2-360m-lora-r8-30k-50-50-es5"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "30k-50-50-r8-es5"  # Hub branch name; set to None or "" to push to main
+HF_MODEL_TAG = "360m-30k-50-50-r8-es5"  # Hub branch name; set to None or "" to push to main
 HF_IGNORE_PATTERNS = [
     "checkpoint-*",
     "training_args.bin",
