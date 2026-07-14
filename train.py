@@ -162,6 +162,7 @@ def main() -> None:
             warmup_steps=WARMUP_STEPS,
             max_length=MAX_SEQ_LENGTH,
             assistant_only_loss=True,
+            loss_type="nll",  # required when lm_head is a LoRA target
             fp16=torch.cuda.is_available(),
             logging_steps=10,
             eval_strategy="steps",
