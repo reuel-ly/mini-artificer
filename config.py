@@ -16,7 +16,6 @@ LORA_TARGET_MODULES = [
     "gate_proj",
     "up_proj",
     "down_proj",
-    "lm_head",
 ]
 LORA_DROPOUT = 0.15
 
