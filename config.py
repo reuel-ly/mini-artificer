@@ -37,11 +37,11 @@ EARLY_STOPPING_PATIENCE = 5
 
 # Logging
 WANDB_PROJECT = "mini-artificer"
-WANDB_RUN_NAME = "smollm2-360m-lora-r8-30k-50-50-es5"
+WANDB_RUN_NAME = "smollm2-360m-lora-r8-30k-50-50-es5-no-lmhead"
 
 # HuggingFace Hub
 HF_REPO_NAME = "reuel-ly/mini-artificer"
-HF_MODEL_TAG = "360m-30k-50-50-r8-es5"  # Hub branch name; set to None or "" to push to main
+HF_MODEL_TAG = "360m-30k-50-50-r8-es5-no-lmhead"  # Hub branch name; set to None or "" to push to main
 HF_IGNORE_PATTERNS = [
     "checkpoint-*",
     "training_args.bin",
